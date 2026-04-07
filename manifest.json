@@ -1,0 +1,16 @@
+{
+  "name": "EO",
+  "short_name": "EO",
+  "description": "감정 파편 기록기",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

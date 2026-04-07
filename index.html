@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EO">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="manifest.json">
+  <title>EO</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #1c1c1e;
+      --surface2: #2c2c2e;
+      --border: #3a3a3c;
+      --text: #f2f2f7;
+      --muted: #8e8e93;
+      --accent: #b8a88a;
+      --accent-dim: #a89880;
+      --cat-장소: #2d6a56;
+      --cat-인물: #6a2d5a;
+      --cat-감정: #7a4a1a;
+      --cat-행동: #1a4a7a;
+      --cat-환경: #3a5a1a;
+      --cat-생각: #4a2d7a;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+    body { display: flex; flex-direction: column; min-height: 100dvh; }
+
+    header { padding: 20px 20px 0; display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0; }
+    .logo { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -1px; color: var(--accent); }
+    .date-display { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+
+    .tabs { display: flex; padding: 16px 20px 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .tab { font-family: 'DM Mono', monospace; font-size: 14px; letter-spacing: 0.06em; color: var(--muted); background: none; border: none; padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .content { flex: 1; overflow-y: auto; padding: 20px; }
+    .content::-webkit-scrollbar { width: 2px; }
+    .content::-webkit-scrollbar-thumb { background: var(--border); }
+
+    /* RECORD */
+    .chain-builder { display: flex; flex-direction: column; gap: 0; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 14px; animation: slideIn 0.15s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .category-pills { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+
+    .pill { font-size: 13px; letter-spacing: 0.02em; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; background: var(--surface2); color: var(--text); }
+    .pill.active-장소 { background: var(--cat-장소); color: #ffffff; border-color: var(--cat-장소); }
+    .pill.active-인물 { background: var(--cat-인물); color: #ffffff; border-color: var(--cat-인물); }
+    .pill.active-감정 { background: var(--cat-감정); color: #ffffff; border-color: var(--cat-감정); }
+    .pill.active-행동 { background: var(--cat-행동); color: #ffffff; border-color: var(--cat-행동); }
+    .pill.active-환경 { background: var(--cat-환경); color: #ffffff; border-color: var(--cat-환경); }
+    .pill.active-생각 { background: var(--cat-생각); color: #ffffff; border-color: var(--cat-생각); }
+
+    .card-delete { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 2px; transition: color 0.15s; flex-shrink: 0; line-height: 1; }
+    .card-delete:hover { color: #8b3a3a; }
+
+    .card-input { background: transparent; border: none; border-bottom: 1px solid var(--border); outline: none; color: var(--text); font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 300; padding: 8px 0 10px; width: 100%; caret-color: var(--accent); transition: border-color 0.2s; }
+    .card-input:focus { border-bottom-color: var(--accent-dim); }
+    .card-input::placeholder { color: var(--muted); font-style: italic; }
+    .card-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .connector { display: flex; align-items: center; justify-content: center; height: 20px; color: var(--text); font-size: 16px; }
+
+    .add-card-btn { border: 1px dashed var(--border); background: transparent; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 14px; letter-spacing: 0.06em; padding: 16px; width: 100%; cursor: pointer; border-radius: 8px; transition: all 0.2s; margin-top: 12px; }
+    .add-card-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+    .bottom-actions { padding: 12px 20px 36px; display: flex; gap: 8px; flex-shrink: 0; }
+    .save-chain-btn { flex: 1; background: var(--accent); color: var(--bg); border: none; font-family: 'DM Mono', monospace; font-size: 15px; letter-spacing: 0.06em; padding: 16px; cursor: pointer; border-radius: 8px; transition: opacity 0.15s; }
+    .save-chain-btn:active { opacity: 0.7; }
+    .save-chain-btn:disabled { opacity: 0.3; cursor: default; }
+    .reset-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 15px; padding: 16px 20px; cursor: pointer; border-radius: 8px; transition: all 0.15s; }
+    .reset-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+    /* HISTORY */
+    .date-group-label { font-size: 12px; color: var(--accent-dim); letter-spacing: 0.1em; margin-bottom: 12px; }
+    .date-group { margin-bottom: 28px; }
+
+    .chain-record { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+    .chain-record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .chain-time { font-size: 12px; color: var(--muted); }
+    .chain-delete { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; transition: color 0.15s; }
+    .chain-delete:hover { color: #8b3a3a; }
+
+    .chain-cards-display { display: flex; flex-direction: column; gap: 4px; }
+    .chain-connector-display { font-size: 11px; color: var(--border); padding-left: 2px; }
+    .chain-card-item { display: flex; align-items: center; gap: 8px; }
+    .chain-card-cat { font-size: 11px; letter-spacing: 0.04em; padding: 4px 12px; border-radius: 20px; min-width: 46px; text-align: center; flex-shrink: 0; }
+    .cat-장소 { background: var(--cat-장소); color: #ffffff; }
+    .cat-인물 { background: var(--cat-인물); color: #ffffff; }
+    .cat-감정 { background: var(--cat-감정); color: #ffffff; }
+    .cat-행동 { background: var(--cat-행동); color: #ffffff; }
+    .cat-환경 { background: var(--cat-환경); color: #ffffff; }
+    .cat-생각 { background: var(--cat-생각); color: #ffffff; }
+    .chain-card-text { font-size: 15px; font-weight: 300; color: var(--text); }
+
+    .copy-date-btn { display: none; }
+    .float-copy-btn { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--bg); font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 0.06em; padding: 13px 28px; border-radius: 24px; border: none; cursor: pointer; z-index: 150; transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .float-copy-btn.copied { background: var(--accent-dim); }
+
+    .empty-state { text-align: center; padding: 60px 0; color: var(--muted); font-size: 12px; font-style: italic; line-height: 2.4; }
+
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .suggest-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
+    .suggest-btn:active { background: var(--surface2); color: var(--text); }
+
+    .chain-edit-btn { background: none; border: none; color: var(--muted); font-size: 15px; cursor: pointer; padding: 0 4px; transition: color 0.15s; line-height: 1; }
+    .chain-edit-btn:hover { color: var(--accent); }
+    .chain-action-btns { display: flex; gap: 4px; align-items: center; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: flex-end; justify-content: center; animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal { background: var(--surface); border-radius: 16px 16px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 480px; animation: slideUp 0.2s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-title { font-size: 15px; color: var(--text); margin-bottom: 6px; }
+    .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+    .modal-btns { display: flex; gap: 8px; }
+    .modal-btn { flex: 1; padding: 13px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 14px; cursor: pointer; border: none; transition: opacity 0.15s; }
+    .modal-btn-cancel { background: var(--surface2); color: var(--muted); }
+    .modal-btn-confirm { background: var(--accent); color: var(--bg); }
+    .modal-btn-danger { background: #6b2323; color: #f2c4c4; }
+
+    .edit-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .edit-card-cat { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .edit-input { background: transparent; border: none; border-bottom: 1px solid var(--border); outline: none; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 6px 0 8px; width: 100%; caret-color: var(--accent); }
+    .edit-add-btn { width: 100%; background: transparent; border: 1px dashed var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; padding: 10px; border-radius: 8px; cursor: pointer; margin-bottom: 16px; }
+    .edit-remove-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; float: right; }
+
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--accent); color: var(--bg); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; padding: 8px 20px; border-radius: 1px; opacity: 0; transition: all 0.25s ease; pointer-events: none; white-space: nowrap; z-index: 100; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EO</div>
+  <div class="date-display" id="dateDisplay"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('record')">기록</button>
+  <button class="tab" onclick="switchTab('history')">히스토리</button>
+  <button class="tab" onclick="switchTab('relation')">관계</button>
+</div>
+
+<div class="content" id="mainContent"></div>
+<div id="bottomBar"></div>
+<button class="float-copy-btn" id="floatCopyBtn" style="display:none;" onclick="copyToday()">오늘 전체 복사</button>
+<div class="toast" id="toast"></div>
+
+<script>
+  const CATS = ['장소','인물','감정','행동','환경','생각'];
+
+  const DEFAULT_KEYWORDS = {
+    '장소': ['집','회사','카페','공원','헬스장','식당','지하철','편의점'],
+    '인물': ['유정','친구','가족','동생','직장동료','혼자'],
+    '감정': ['설렘','불안','무기력','행복','귀찮음','뿌듯함','외로움','화남','편안함','우울'],
+    '행동': ['운동','공부','게임','산책','식사','수면','독서','코딩','쇼핑'],
+    '환경': ['맑음','흐림','비','더움','추움','사람많음','조용함','시끄러움'],
+    '생각': ['고민','깨달음','계획','후회','기대','회상','의문','결심']
+  };
+
+  function getSuggestions(category, currentVal) {
+    if (!category) return [];
+    const used = {};
+    chains.forEach(chain => {
+      chain.cards.forEach(c => {
+        if (c.category === category) {
+          used[c.keyword] = (used[c.keyword] || 0) + 1;
+        }
+      });
+    });
+    const usedSorted = Object.entries(used)
+      .sort((a, b) => b[1] - a[1])
+      .map(e => e[0]);
+    const defaults = DEFAULT_KEYWORDS[category] || [];
+    const merged = [...new Set([...usedSorted, ...defaults])];
+    const val = currentVal.toLowerCase();
+    return merged.filter(k => k !== currentVal && (val === '' || k.includes(val))).slice(0, 8);
+  }
+  let currentTab = 'record';
+  let chains = JSON.parse(localStorage.getItem('eo_chains') || '[]');
+  let cards = [{ category: null, keyword: '' }];
+
+  function updateDate() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    const days = ['일','월','화','수','목','금','토'];
+    document.getElementById('dateDisplay').textContent = `${y}.${m}.${d}.(${days[now.getDay()]})`;
+  }
+  updateDate();
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active',
+        (i===0 && tab==='record') ||
+        (i===1 && tab==='history') ||
+        (i===2 && tab==='relation')
+      );
+    });
+    render();
+    const floatBtn = document.getElementById('floatCopyBtn');
+    if (floatBtn) floatBtn.style.display = tab === 'history' ? 'block' : 'none';
+  }
+
+  function render() {
+    if (currentTab === 'record') renderRecord();
+    else if (currentTab === 'history') renderHistory();
+    else renderRelation();
+  }
+
+  function renderRecord() {
+    const content = document.getElementById('mainContent');
+    const bottom = document.getElementById('bottomBar');
+
+    let html = '<div class="chain-builder">';
+    cards.forEach((card, i) => {
+      if (i > 0) html += '<div class="connector">-</div>';
+      html += `<div class="card">
+        <div class="card-header">
+          <div class="category-pills">
+            ${CATS.map(cat => `<button class="pill ${card.category===cat?'active-'+cat:''}" onclick="setCategory(${i},'${cat}')">${cat}</button>`).join('')}
+          </div>
+          ${cards.length > 1 ? `<button class="card-delete" onclick="removeCard(${i})">×</button>` : ''}
+        </div>
+        <input class="card-input" type="text"
+          placeholder="${card.category ? card.category+' 키워드' : '카테고리를 먼저 선택해줘'}"
+          value="${card.keyword}"
+          oninput="updateKeyword(${i}, this.value)"
+          ${!card.category ? 'disabled' : ''}
+        />
+        ${card.category ? `<div class="suggestions">
+          ${getSuggestions(card.category, card.keyword).map(s =>
+            `<button class="suggest-btn" onclick="applySuggestion(${i},'${s}')">${s}</button>`
+          ).join('')}
+        </div>` : ''}
+      </div>`;
+    });
+    html += '</div><button class="add-card-btn" onclick="addCard()">+ 카드 추가</button>';
+    content.innerHTML = html;
+
+    const hasValid = cards.some(c => c.category && c.keyword.trim());
+    bottom.innerHTML = `<div class="bottom-actions">
+      <button class="reset-btn" onclick="resetChain()">초기화</button>
+      <button class="save-chain-btn" onclick="saveChain()" ${!hasValid?'disabled':''}>체인 저장</button>
+    </div>`;
+  }
+
+  function setCategory(i, cat) {
+    cards[i].category = cat;
+    cards[i].keyword = '';
+    renderRecord();
+    setTimeout(() => {
+      document.querySelectorAll('.card-input')[i]?.focus();
+    }, 50);
+  }
+
+  function updateKeyword(i, val) {
+    cards[i].keyword = val;
+    const hasValid = cards.some(c => c.category && c.keyword.trim());
+    const btn = document.querySelector('.save-chain-btn');
+    if (btn) btn.disabled = !hasValid;
+  }
+
+  function applySuggestion(i, val) {
+    cards[i].keyword = val;
+    renderRecord();
+    const hasValid = cards.some(c => c.category && c.keyword.trim());
+    const btn = document.querySelector('.save-chain-btn');
+    if (btn) btn.disabled = !hasValid;
+  }
+
+  function addCard() {
+    cards.push({ category: null, keyword: '' });
+    renderRecord();
+    setTimeout(() => {
+      const c = document.getElementById('mainContent');
+      c.scrollTop = c.scrollHeight;
+    }, 50);
+  }
+
+  function removeCard(i) {
+    cards.splice(i, 1);
+    renderRecord();
+  }
+
+  function resetChain() {
+    cards = [{ category: null, keyword: '' }];
+    renderRecord();
+  }
+
+  function saveChain() {
+    const valid = cards.filter(c => c.category && c.keyword.trim());
+    if (!valid.length) return;
+    const now = new Date();
+    const days = ['일','월','화','수','목','금','토'];
+    const chain = {
+      id: Date.now(),
+      timestamp: now.toISOString(),
+      date: `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}.(${days[now.getDay()]})`,
+      time: now.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', hour12:false }),
+      cards: valid
+    };
+    chains.push(chain);
+    localStorage.setItem('eo_chains', JSON.stringify(chains));
+    cards = [{ category: null, keyword: '' }];
+    renderRecord();
+    showToast('체인 저장됐다');
+  }
+
+  function renderHistory() {
+    const content = document.getElementById('mainContent');
+    document.getElementById('bottomBar').innerHTML = '';
+
+    if (!chains.length) {
+      content.innerHTML = '<div class="empty-state">아직 기록이 없다.<br>지금 이 순간부터 시작해봐.</div>';
+      return;
+    }
+
+    const groups = {};
+    chains.forEach(c => {
+      if (!groups[c.date]) groups[c.date] = [];
+      groups[c.date].push(c);
+    });
+
+    let html = '';
+    Object.entries(groups).forEach(([date, group]) => {
+      const dateKey = date.replace(/[.()]/g, '_');
+      html += `<div class="date-group"><div class="date-group-label">${date}</div>`;
+      group.forEach(chain => {
+        html += `<div class="chain-record">
+          <div class="chain-record-header">
+            <span class="chain-time">${chain.time}</span>
+            <div class="chain-action-btns">
+              <button class="chain-edit-btn" onclick="promptEdit(${chain.id})">✎</button>
+              <button class="chain-delete" onclick="promptDelete(${chain.id})">×</button>
+            </div>
+          </div>
+          <div class="chain-cards-display">
+            ${chain.cards.map((card, i) => `
+              ${i > 0 ? '<div class="chain-connector-display">-</div>' : ''}
+              <div class="chain-card-item">
+                <span class="chain-card-cat cat-${card.category}">${card.category}</span>
+                <span class="chain-card-text">${card.keyword}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      });
+      html += `<button class="copy-date-btn" id="copybtn-${dateKey}" onclick="copyDate('${date}','${dateKey}')">이 날 전체 복사</button>`;
+      html += '</div>';
+    });
+    content.innerHTML = html;
+    content.scrollTop = content.scrollHeight;
+  }
+
+  function promptDelete(id) {
+    const chain = chains.find(c => c.id === id);
+    if (!chain) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="modal">
+      <div class="modal-title">[${chain.time}] 기록을 삭제할까?</div>
+      <div class="modal-sub">${chain.cards.map(c => c.category+': '+c.keyword).join(' - ')}</div>
+      <div class="modal-btns">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">취소</button>
+        <button class="modal-btn modal-btn-danger" onclick="confirmDelete(${id})">삭제</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+
+  function confirmDelete(id) {
+    chains = chains.filter(c => c.id !== id);
+    localStorage.setItem('eo_chains', JSON.stringify(chains));
+    closeModal();
+    renderHistory();
+    showToast('삭제됐다');
+  }
+
+  let editingId = null;
+  let editCards = [];
+
+  function promptEdit(id) {
+    const chain = chains.find(c => c.id === id);
+    if (!chain) return;
+    editingId = id;
+    editCards = chain.cards.map(c => ({...c}));
+    renderEditModal(chain);
+  }
+
+  function renderEditModal(chain) {
+    const existing = document.querySelector('.modal-overlay');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    let cardsHtml = '';
+    editCards.forEach((card, i) => {
+      let pillsHtml = '';
+      CATS.forEach(cat => {
+        const active = card.category === cat ? 'active-' + cat : '';
+        pillsHtml += '<button class="pill ' + active + '" style="font-size:11px;padding:4px 10px;" onclick="setEditCategory(' + i + ',\'' + cat + '\')">' + cat + '</button>';
+      });
+      cardsHtml += '<div class="edit-card">'
+        + '<button class="edit-remove-btn" onclick="removeEditCard(' + i + ')">×</button>'
+        + '<div class="edit-card-cat">' + pillsHtml + '</div>'
+        + '<input class="edit-input" value="' + card.keyword + '" placeholder="키워드" oninput="updateEditKeyword(' + i + ',this.value)" />'
+        + '</div>';
+    });
+
+    overlay.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto;">'
+      + '<div class="modal-title" style="margin-bottom:16px;">[' + chain.time + '] 편집</div>'
+      + cardsHtml
+      + '<button class="edit-add-btn" onclick="addEditCard()">+ 카드 추가</button>'
+      + '<div class="modal-btns">'
+      + '<button class="modal-btn modal-btn-cancel" onclick="closeModal()">취소</button>'
+      + '<button class="modal-btn modal-btn-confirm" onclick="confirmEdit()">저장</button>'
+      + '</div></div>';
+
+    document.body.appendChild(overlay);
+  }
+
+
+  function setEditCategory(i, cat) {
+    editCards[i].category = cat;
+    const chain = chains.find(c => c.id === editingId);
+    renderEditModal(chain);
+  }
+
+  function updateEditKeyword(i, val) { editCards[i].keyword = val; }
+
+  function addEditCard() {
+    editCards.push({ category: null, keyword: '' });
+    const chain = chains.find(c => c.id === editingId);
+    renderEditModal(chain);
+  }
+
+  function removeEditCard(i) {
+    if (editCards.length <= 1) return;
+    editCards.splice(i, 1);
+    const chain = chains.find(c => c.id === editingId);
+    renderEditModal(chain);
+  }
+
+  function confirmEdit() {
+    const valid = editCards.filter(c => c.category && c.keyword.trim());
+    if (!valid.length) { showToast('카테고리와 키워드를 입력해줘'); return; }
+    const idx = chains.findIndex(c => c.id === editingId);
+    if (idx !== -1) { chains[idx].cards = valid; }
+    localStorage.setItem('eo_chains', JSON.stringify(chains));
+    closeModal();
+    renderHistory();
+    showToast('수정됐다');
+  }
+
+  function closeModal() {
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) overlay.remove();
+  }
+
+  function copyToday() {
+    const now = new Date();
+    const days = ['일','월','화','수','목','금','토'];
+    const today = now.getFullYear()+'.'+String(now.getMonth()+1).padStart(2,'0')+'.'+String(now.getDate()).padStart(2,'0')+'.('+days[now.getDay()]+')';
+    const group = chains.filter(c => c.date === today);
+    const btn = document.getElementById('floatCopyBtn');
+    if (!group.length) { showToast('오늘 기록이 없다'); return; }
+    let lines = '[EO 기록 - ' + today + ']';
+    group.forEach(chain => {
+      lines += '\n[' + chain.time + ']\n';
+      lines += chain.cards.map(c => c.category + ': ' + c.keyword).join(' - ');
+    });
+    function onSuccess() {
+      if (btn) { btn.textContent = '복사됐다'; btn.classList.add('copied'); setTimeout(function(){ btn.textContent = '오늘 전체 복사'; btn.classList.remove('copied'); }, 2000); }
+      showToast('복사됐다');
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = lines; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); onSuccess(); } catch(e) { showToast('복사 실패'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lines).then(onSuccess).catch(fallback);
+    } else { fallback(); }
+  }
+
+
+  function copyDate(date, dateKey) {
+    const group = chains.filter(c => c.date === date);
+    if (!group.length) return;
+    const text = '[EO 기록 - ' + date + ']\n' +
+      group.map(chain =>
+        '[' + chain.time + ']\n' +
+        chain.cards.map(c => c.category + ': ' + c.keyword).join(' - ')
+      ).join('\n\n');
+    const btn = document.getElementById('copybtn-' + dateKey);
+    function onSuccess() {
+      if (btn) { btn.textContent = '복사됐다'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '이 날 전체 복사'; btn.classList.remove('copied'); }, 2000); }
+      showToast('복사됐다');
+    }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand('copy'); onSuccess(); } catch(e) { showToast('복사 실패'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onSuccess).catch(fallback);
+    } else { fallback(); }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function renderRelation() {
+    const content = document.getElementById('mainContent');
+    document.getElementById('bottomBar').innerHTML = '';
+    if (!chains.length) {
+      content.innerHTML = '<div class="empty-state">기록이 쌓이면<br>단어들의 관계가 보이기 시작한다.</div>';
+      return;
+    }
+    content.innerHTML = '<svg id="relationSvg" style="width:100%;height:calc(100dvh - 160px);"></svg>';
+    buildGraph();
+  }
+
+  var selectedNode = null;
+
+  function buildGraph() {
+    var nodes = {};
+    var links = {};
+
+    chains.forEach(function(chain) {
+      var kws = chain.cards.filter(function(c){ return c.keyword.trim(); });
+      kws.forEach(function(c) {
+        var k = c.keyword;
+        if (!nodes[k]) nodes[k] = { id: k, category: c.category, count: 0 };
+        nodes[k].count++;
+      });
+      for (var a = 0; a < kws.length; a++) {
+        for (var b = a+1; b < kws.length; b++) {
+          var key = [kws[a].keyword, kws[b].keyword].sort().join('||');
+          if (!links[key]) links[key] = { source: kws[a].keyword, target: kws[b].keyword, value: 0 };
+          links[key].value++;
+        }
+      }
+    });
+
+    var nodeArr = Object.values(nodes);
+    var linkArr = Object.values(links);
+
+    if (!nodeArr.length) {
+      document.getElementById('mainContent').innerHTML = '<div class="empty-state">키워드가 없다.</div>';
+      return;
+    }
+
+    var svg = document.getElementById('relationSvg');
+    var W = svg.clientWidth || 360;
+    var H = svg.clientHeight || 500;
+
+    var catColors = {
+      '장소':'#2d6a56','인물':'#6a2d5a','감정':'#7a4a1a',
+      '행동':'#1a4a7a','환경':'#3a5a1a','생각':'#4a2d7a'
+    };
+
+    var maxCount = Math.max.apply(null, nodeArr.map(function(n){ return n.count; }));
+    var maxVal = linkArr.length ? Math.max.apply(null, linkArr.map(function(l){ return l.value; })) : 1;
+
+    function nodeR(n) { return 14 + (n.count / maxCount) * 18; }
+    function linkW(l) { return 1 + (l.value / maxVal) * 5; }
+
+    nodeArr.forEach(function(n) {
+      n.x = W/2 + (Math.random()-0.5)*W*0.6;
+      n.y = H/2 + (Math.random()-0.5)*H*0.6;
+      n.vx = 0; n.vy = 0;
+    });
+
+    var nodeMap = {};
+    nodeArr.forEach(function(n){ nodeMap[n.id] = n; });
+    linkArr.forEach(function(l){
+      l.s = nodeMap[l.source];
+      l.t = nodeMap[l.target];
+    });
+
+    var svgNS = 'http://www.w3.org/2000/svg';
+    svg.innerHTML = '';
+
+    var gLinks = document.createElementNS(svgNS, 'g');
+    var gNodes = document.createElementNS(svgNS, 'g');
+    svg.appendChild(gLinks);
+    svg.appendChild(gNodes);
+
+    var lineEls = linkArr.map(function(l) {
+      var line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('stroke', '#5a5a5e');
+      line.setAttribute('stroke-width', linkW(l));
+      line.setAttribute('stroke-opacity', '0.4');
+      gLinks.appendChild(line);
+      return line;
+    });
+
+    var nodeEls = nodeArr.map(function(n) {
+      var g = document.createElementNS(svgNS, 'g');
+      g.style.cursor = 'pointer';
+
+      var circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('r', nodeR(n));
+      circle.setAttribute('fill', catColors[n.category] || '#3a3a3c');
+      circle.setAttribute('fill-opacity', '0.85');
+
+      var text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('fill', '#f2f2f7');
+      text.setAttribute('font-size', Math.max(10, nodeR(n)*0.55));
+      text.setAttribute('font-family', 'DM Mono, monospace');
+      text.setAttribute('pointer-events', 'none');
+      text.textContent = n.id;
+
+      g.appendChild(circle);
+      g.appendChild(text);
+      g.addEventListener('click', function() { selectNode(n.id); });
+      gNodes.appendChild(g);
+      return { el: g, circle: circle, text: text, n: n };
+    });
+
+    function getConnected(nodeId) {
+      var connected = {};
+      linkArr.forEach(function(l) {
+        if (l.source === nodeId) connected[l.target] = true;
+        if (l.target === nodeId) connected[l.source] = true;
+      });
+      return connected;
+    }
+
+    function selectNode(nodeId) {
+      if (selectedNode === nodeId) {
+        selectedNode = null;
+        applyDefault();
+        if (window._eoRestartAnim) window._eoRestartAnim();
+        return;
+      }
+      selectedNode = nodeId;
+      if (window._eoRestartAnim) window._eoRestartAnim();
+      var connected = getConnected(nodeId);
+
+      nodeEls.forEach(function(ne) {
+        var isSelected = ne.n.id === nodeId;
+        var isConnected = connected[ne.n.id];
+        var isIsolated = !isSelected && !isConnected;
+
+        ne.circle.setAttribute('fill-opacity', isIsolated ? '0.15' : '0.9');
+        ne.text.setAttribute('fill', isIsolated ? '#3a3a3c' : '#f2f2f7');
+        ne.text.setAttribute('font-size', isIsolated
+          ? Math.max(8, nodeR(ne.n)*0.4)
+          : isSelected
+            ? Math.max(12, nodeR(ne.n)*0.65)
+            : Math.max(10, nodeR(ne.n)*0.55));
+        ne.circle.setAttribute('r', isIsolated ? nodeR(ne.n)*0.6 : isSelected ? nodeR(ne.n)*1.15 : nodeR(ne.n));
+        ne.circle.setAttribute('stroke', isSelected ? '#b8a88a' : 'none');
+        ne.circle.setAttribute('stroke-width', isSelected ? '2' : '0');
+      });
+
+      lineEls.forEach(function(line, i) {
+        var l = linkArr[i];
+        var active = l.source === nodeId || l.target === nodeId;
+        line.setAttribute('stroke', active ? '#b8a88a' : '#3a3a3c');
+        line.setAttribute('stroke-opacity', active ? '0.9' : '0.1');
+        line.setAttribute('stroke-width', active ? linkW(l)+1 : '0.5');
+      });
+    }
+
+    function applyDefault() {
+      nodeEls.forEach(function(ne) {
+        ne.circle.setAttribute('fill-opacity', '0.85');
+        ne.circle.setAttribute('r', nodeR(ne.n));
+        ne.circle.setAttribute('stroke', 'none');
+        ne.text.setAttribute('fill', '#f2f2f7');
+        ne.text.setAttribute('font-size', Math.max(10, nodeR(ne.n)*0.55));
+      });
+      lineEls.forEach(function(line, i) {
+        line.setAttribute('stroke', '#5a5a5e');
+        line.setAttribute('stroke-opacity', '0.4');
+        line.setAttribute('stroke-width', linkW(linkArr[i]));
+      });
+    }
+
+    svg.addEventListener('click', function(e) {
+      if (e.target === svg || e.target.tagName === 'svg') {
+        selectedNode = null;
+        applyDefault();
+      }
+    });
+
+    function tick(frame) {
+      var repulsion = 800;
+      var attraction = 0.05;
+      var centerX = W/2, centerY = H/2;
+      var settled = frame > 150;
+
+      for (var iter = 0; iter < 3; iter++) {
+        nodeArr.forEach(function(a) {
+          nodeArr.forEach(function(b) {
+            if (a === b) return;
+            var dx = a.x - b.x, dy = a.y - b.y;
+            var dist = Math.sqrt(dx*dx+dy*dy) || 1;
+
+            var rep = repulsion;
+            if (selectedNode && b.id === selectedNode) {
+              var pushStrength = 1 + (1 - a.count / maxCount) * 3;
+              rep = repulsion * pushStrength * 2.5;
+            }
+
+            var force = rep / (dist*dist);
+            a.vx += (dx/dist)*force;
+            a.vy += (dy/dist)*force;
+          });
+          a.vx += (centerX - a.x) * 0.008;
+          a.vy += (centerY - a.y) * 0.008;
+        });
+
+        linkArr.forEach(function(l) {
+          var dx = l.t.x - l.s.x, dy = l.t.y - l.s.y;
+          var dist = Math.sqrt(dx*dx+dy*dy) || 1;
+          var ideal = 80 + nodeR(l.s) + nodeR(l.t);
+          var force = (dist - ideal) * attraction;
+          l.s.vx += (dx/dist)*force;
+          l.s.vy += (dy/dist)*force;
+          l.t.vx -= (dx/dist)*force;
+          l.t.vy -= (dy/dist)*force;
+        });
+
+        nodeArr.forEach(function(n) {
+          var weight = 0.6 + (n.count / maxCount) * 0.3;
+          var drag = settled ? (0.88 * weight + 0.06) : 0.6;
+          n.vx *= drag; n.vy *= drag;
+          n.x += n.vx; n.y += n.vy;
+          var r = nodeR(n);
+          n.x = Math.max(r+10, Math.min(W-r-10, n.x));
+          n.y = Math.max(r+10, Math.min(H-r-10, n.y));
+        });
+      }
+
+      lineEls.forEach(function(line, i) {
+        var l = linkArr[i];
+        line.setAttribute('x1', l.s.x);
+        line.setAttribute('y1', l.s.y);
+        line.setAttribute('x2', l.t.x);
+        line.setAttribute('y2', l.t.y);
+      });
+
+      nodeEls.forEach(function(ne) {
+        ne.el.setAttribute('transform', 'translate('+ne.n.x+','+ne.n.y+')');
+      });
+    }
+
+    var frame = 0;
+    var animating = true;
+
+    function loop() {
+      if (currentTab !== 'relation') return;
+      tick(frame);
+      frame++;
+      if (frame < 150) {
+        requestAnimationFrame(loop);
+      } else {
+        animating = false;
+        draw();
+      }
+    }
+
+    function draw() {
+      lineEls.forEach(function(line, i) {
+        var l = linkArr[i];
+        line.setAttribute('x1', l.s.x);
+        line.setAttribute('y1', l.s.y);
+        line.setAttribute('x2', l.t.x);
+        line.setAttribute('y2', l.t.y);
+      });
+      nodeEls.forEach(function(ne) {
+        ne.el.setAttribute('transform', 'translate('+ne.n.x+','+ne.n.y+')');
+      });
+    }
+
+    function runPush() {
+      var pushFrame = 0;
+      function pushLoop() {
+        if (currentTab !== 'relation') return;
+        tick(200 + pushFrame);
+        pushFrame++;
+        if (pushFrame < 40) requestAnimationFrame(pushLoop);
+        else draw();
+      }
+      requestAnimationFrame(pushLoop);
+    }
+
+    var origSelectNode = selectNode;
+    selectNode = function(nodeId) {
+      origSelectNode(nodeId);
+      runPush();
+    };
+
+    requestAnimationFrame(loop);
+  }
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  render();
+</script>
+</body>
+</html>
